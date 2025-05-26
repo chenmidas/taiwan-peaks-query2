@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣小百岳查詢系統</title>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #2d3436;
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.2rem;
+        }
+        
+        .search-area {
+            padding: 30px;
+            text-align: center;
+            background: #f8f9fa;
+        }
+        
+        .search-box {
+            display: inline-flex;
+            margin-bottom: 20px;
+            border-radius: 25px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .search-input {
+            border: none;
+            padding: 15px 25px;
+            font-size: 1.1rem;
+            width: 250px;
+            outline: none;
+        }
+        
+        .search-btn {
+            background: #00b894;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: background 0.3s;
+        }
+        
+        .search-btn:hover {
+            background: #00a085;
+        }
+        
+        .results {
+            padding: 20px 30px;
+            display: none;
+        }
+        
+        .result-title {
+            background: #fdcb6e;
+            color: #2d3436;
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .peak-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .peak-item {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            transition: transform 0.2s;
+        }
+        
+        .peak-item:hover {
+            transform: translateY(-3px);
+            border-color: #74b9ff;
+        }
+        
+        .peak-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #2d3436;
+            margin-bottom: 15px;
+        }
+        
+        .peak-details div {
+            margin: 8px 0;
+            display: flex;
+        }
+        
+        .label {
+            font-weight: bold;
+            color: #636e72;
+            width: 70px;
+        }
+        
+        .value {
+            color: #2d3436;
+        }
+        
+        .height {
+            color: #e17055;
+            font-weight: bold;
+        }
+        
+        .difficulty {
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        
+        .easy { background: #d1f2eb; color: #00b894; }
+        .medium { background: #fef9e7; color: #fdcb6e; }
+        .hard { background: #fadbd8; color: #e17055; }
+        
+        .no-result {
+            text-align: center;
+            color: #74b9ff;
+            font-size: 1.2rem;
+            padding: 40px;
+        }
+        
+        @media (max-width: 600px) {
+            .search-input { width: 200px; }
+            .peak-list { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏔️ 台灣小百岳查詢</h1>
+            <p>輕鬆查找您想攀登的小百岳</p>
+        </div>
+        
+        <div class="search-area">
+            <div class="search-box">
+                <input type="text" class="search-input" id="cityInput" placeholder="輸入縣市 (如: 台北市)">
+                <button class="search-btn" onclick="search()">搜尋</button>
+            </div>
+            <div style="color: #636e72; font-size: 0.9rem;">
+                支援縣市：台北市、新北市、桃園市、台中市、高雄市等
+            </div>
+        </div>
+        
+        <div class="results" id="results">
+            <div class="result-title" id="resultTitle"></div>
+            <div class="peak-list" id="peakList"></div>
+        </div>
+    </div>
+
+    <script>
+        // 精簡版小百岳資料
+        const peaks = {
+            '台北市': [
+                { name: '劍潭山', height: '153m', area: '士林區', start: '劍潭捷運站', level: 'easy' },
+                { name: '北投丹鳳山', height: '117m', area: '北投區', start: '奇岩捷運站', level: 'easy' }
+            ],
+            '新北市': [
+                { name: '獅頭山', height: '858m', area: '三峽區', start: '勸化堂', level: 'medium' },
+                { name: '二格山', height: '678m', area: '石碇區', start: '猴山岳登山口', level: 'medium' },
+                { name: '烘爐地山', height: '302m', area: '中和區', start: '南山福德宮', level: 'easy' }
+            ],
+            '桃園市': [
+                { name: '石門山', height: '551m', area: '龍潭區', start: '石門水庫', level: 'medium' },
+                { name: '虎頭山', height: '251m', area: '桃園區', start: '虎頭山公園', level: 'easy' }
+            ],
+            '台中市': [
+                { name: '聚興山', height: '500m', area: '神岡區', start: '圳堵里', level: 'easy' },
+                { name: '頭嵙山', height: '859m', area: '北屯區', start: '大坑4號步道', level: 'medium' }
+            ],
+            '高雄市': [
+                { name: '壽山', height: '356m', area: '鼓山區', start: '壽山動物園', level: 'easy' },
+                { name: '半屏山', height: '223m', area: '左營區', start: '半屏山登山口', level: 'easy' }
+            ],
+            '宜蘭縣': [
+                { name: '鶯子嶺', height: '677m', area: '頭城鎮', start: '鶯子嶺步道', level: 'medium' }
+            ],
+            '花蓮縣': [
+                { name: '美崙山', height: '108m', area: '花蓮市', start: '美崙山公園', level: 'easy' }
+            ]
+        };
+
+        function search() {
+            const city = document.getElementById('cityInput').value.trim();
+            const results = document.getElementById('results');
+            const title = document.getElementById('resultTitle');
+            const list = document.getElementById('peakList');
+            
+            if (!city) {
+                alert('請輸入縣市名稱');
+                return;
+            }
+            
+            const data = peaks[city];
+            results.style.display = 'block';
+            
+            if (!data) {
+                title.innerHTML = `❌ 查無「${city}」資料`;
+                list.innerHTML = '<div class="no-result">請確認縣市名稱或嘗試其他地區</div>';
+                return;
+            }
+            
+            title.innerHTML = `✅ 「${city}」共有 ${data.length} 座小百岳`;
+            
+            let html = '';
+            data.forEach(peak => {
+                const levelText = { easy: '簡單', medium: '中等', hard: '困難' }[peak.level];
+                html += `
+                    <div class="peak-item">
+                        <div class="peak-name">⛰️ ${peak.name}</div>
+                        <div class="peak-details">
+                            <div><span class="label">海拔:</span><span class="value height">${peak.height}</span></div>
+                            <div><span class="label">位置:</span><span class="value">${peak.area}</span></div>
+                            <div><span class="label">登山口:</span><span class="value">${peak.start}</span></div>
+                            <div><span class="label">難度:</span><span class="difficulty ${peak.level}">${levelText}</span></div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            list.innerHTML = html;
+            results.scrollIntoView({ behavior: 'smooth' });
+        }
+        // Enter鍵搜尋
+        document.getElementById('cityInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') search();
+        });
+    </script>
+</body>
+</html>
